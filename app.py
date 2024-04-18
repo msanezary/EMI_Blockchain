@@ -1,14 +1,14 @@
-from flask import Flask, jsonify, request # type: ignore
-from blockchain import EmiBlockchain
+from flask import Flask, jsonify, request
 from uuid import uuid4
+from blockchain import Blockchain
 
 app = Flask(__name__)
 node_identifier = str(uuid4()).replace('-', '')
-blockchain = EmiBlockchain()
+blockchain = Blockchain()
 
 @app.route('/mine', methods=['GET'])
 def mine():
-    # Méthode pour miner un nouveau bloc
+    """Mine a new block in the Blockchain."""
     last_block = blockchain.last_block
     last_proof = last_block['proof']
     proof = blockchain.proof_of_work(last_proof)
@@ -26,14 +26,14 @@ def mine():
         'message': "New Block Forged",
         'index': block['index'],
         'transactions': block['transactions'],
-        ',proof': block['proof'],
-        'previous_hash': block['previous_hash'],
+        'proof': block['proof'],
+        'previous_hash': previous_hash,
     }
     return jsonify(response), 200
 
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
-    # Création d'une nouvelle transaction par un POST request
+    """Add a new transaction."""
     values = request.get_json()
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
@@ -45,7 +45,7 @@ def new_transaction():
 
 @app.route('/chain', methods=['GET'])
 def full_chain():
-    # Retourne la chaîne complète et sa longueur
+    """Return the full chain and its current length."""
     response = {
         'chain': blockchain.chain,
         'length': len(blockchain.chain),
@@ -54,10 +54,10 @@ def full_chain():
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
-    # Enregistre un nouveau noeud à partir des données reçues en POST
+    """Register new nodes."""
     values = request.get_json()
     nodes = values.get('nodes')
-    if nodes is None:
+    if not all(nodes):
         return "Error: Please supply a valid list of nodes.", 400
 
     for node in nodes:
@@ -71,7 +71,7 @@ def register_nodes():
 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():
-    # Résout les conflits et assure que la chaîne est à jour avec le réseau
+    """Consensus endpoint to resolve conflicts."""
     replaced = blockchain.resolve_conflicts()
 
     if replaced:
